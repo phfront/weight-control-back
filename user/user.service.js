@@ -7,7 +7,9 @@ const User = require('../model/user');
 module.exports = {
     authenticate,
     getAll,
-    register
+    register,
+    getUserFromToken,
+    getUserIdFromToken
 };
 
 function authenticate({ username, password }, cb) {
@@ -27,7 +29,7 @@ function authenticate({ username, password }, cb) {
                     errors: ['Usuário não encontrado, verifique usuário e senha informados']
                 })
             } else {
-                const token = jwt.sign({ sub: user._id }, config.secret, { expiresIn: '7d' });
+                const token = jwt.sign({ userId: user._id }, config.secret, { expiresIn: '7d' });
                 cb({ success: true, token })
             }
         });
@@ -60,6 +62,68 @@ async function register(user) {
             success: true,
             user
         }
+    }
+}
+
+function getUserFromToken(headers, cb) {
+    const { authorization } = headers;
+    if (authorization) {
+        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+            if (err) {
+                cb(500, {
+                    success: false,
+                    errors: ['Token inválido'],
+                })
+            } else {
+                User.findById(decoded.userId, (err2, user) => {
+                    if (err2 || !user) {
+                        cb(500, {
+                            success: false,
+                            errors: ['Usuário não encontrado']
+                        })
+                    } else {
+                        cb(200, {
+                            success: true,
+                            user: {
+                                _id: user._id,
+                                name: user.name,
+                                email: user.email,
+                                username: user.username,
+                            }
+                        });
+                    }
+                });
+            }
+        })
+    } else {
+        return cb(500, {
+            success: false,
+            errors: ['Header inválido']
+        });
+    }
+}
+
+function getUserIdFromToken(headers, cb) {
+    const { authorization } = headers;
+    if (authorization) {
+        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+            if (err) {
+                cb(500, {
+                    success: false,
+                    errors: ['Token inválido'],
+                })
+            } else {
+                cb(200, {
+                    success: true,
+                    userId: decoded.userId
+                })
+            }
+        })
+    } else {
+        return cb(500, {
+            success: false,
+            errors: ['Header inválido']
+        });
     }
 }
 

@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const Card = require('./card');
 
 const DeckSchema = new Schema({
     userId: String,
     name: String,
     createdBy: String,
-    main: [Number],
-    extra: [Number],
-    side: [Number],
+    main: [Card],
+    extra: [Card],
+    side: [Card],
 });
 
 module.exports = mongoose.model('deck', DeckSchema);

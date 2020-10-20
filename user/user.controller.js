@@ -14,10 +14,13 @@ const jwt = require('jsonwebtoken');
 router.post('/register', register);
 router.post('/authenticate', authenticate);
 router.get('/', getAll);
-router.get('/:userId/deck', getDecks);
+router.get('/deck', getDecks);
+router.get('/mycards', getMyCards);
+router.put('/mycards', updateMyCards);
 router.post('/forgotpassword', forgotPassword);
 router.post('/changepassword', changePassword);
 router.get('/verifyToken', verifyToken);
+router.get('/info', userInfo);
 
 module.exports = router;
 
@@ -40,8 +43,9 @@ function verifyToken(req, res) {
                     success: false,
                     errors: ['Token inválido']
                 })
+            } else {
+                res.json({ success: true })
             }
-            res.json({ success: true })
         })
     } else {
         res.status(500).json({
@@ -51,6 +55,12 @@ function verifyToken(req, res) {
     }
 }
 
+function userInfo(req, res) {
+    userService.getUserFromToken(req.headers, (status, ret) => {
+        res.status(status).send(ret);
+    })
+}
+
 function getAll(req, res, next) {
     userService.getAll()
         .then(users => res.json(users))
@@ -58,18 +68,97 @@ function getAll(req, res, next) {
 }
 
 function getDecks(req, res) {
-    const userId = req.param('userId');
-    Deck.find({ userId }, (err, decks) => {
-        if (err) {
-            res.status(500).json({
-                success: false,
-                errors: ['Error ao buscar decks']
+    userService.getUserIdFromToken(req.headers, (status, ret) => {
+        if (status === 200) {
+            Deck.find({ userId: ret.userId }, (err, decks) => {
+                if (err) {
+                    res.status(500).json({
+                        success: false,
+                        errors: ['Error ao buscar decks']
+                    })
+                } else {
+                    res.json({
+                        success: true,
+                        decks
+                    })
+                }
             })
         } else {
-            res.json({
-                success: true,
-                decks
+            res.status(status).send(ret);
+        }
+    })
+}
+
+function updateMyCards(req, res) {
+    const { cards } = req.body;
+    const errors = [];
+    if (!cards) errors.push('Lista de cartas são obrigatórias')
+    if (errors.length) {
+        res.status(500).json({
+            success: false,
+            errors
+        });
+    } else {
+        userService.getUserIdFromToken(req.headers, (status, ret) => {
+            if (status === 200) {
+                MyCards.findOne({ userId: ret.userId }, (err, myCards) => {
+                    if (err) {
+                        res.status(500).json({
+                            success: false,
+                            errors: ['Error ao salvar cartas']
+                        })
+                    } else {
+                        cards.forEach(card => {
+                            const existCard = myCards.cards.find(c => c.id === card.id);
+                            if (existCard) {
+                                if (card.count <= 0) {
+                                    myCards.cards = myCards.cards.filter(c => c.id !== card.id)
+                                } else {
+                                    existCard.count = card.count;
+                                }
+                            } else {
+                                myCards.cards.push(card);
+                            }
+                        })
+                        myCards.update({ cards: myCards.cards }, (err2, update) => {
+                            if (err2) {
+                                res.status(500).json({
+                                    success: false,
+                                    errors: ['Error ao salvar cartas']
+                                })
+                            } else {
+                                res.json({
+                                    success: true
+                                })
+                            }
+                        })
+                    }
+                })
+            } else {
+                res.status(status).send(ret);
+            }
+        })
+    }
+}
+
+function getMyCards(req, res) {
+    userService.getUserIdFromToken(req.headers, (status, ret) => {
+        if (status === 200) {
+            MyCards.findOne({ userId: ret.userId }, (err, cards) => {
+                if (err) {
+                    res.status(500).json({
+                        success: false,
+                        errors: ['Error ao buscar cartas']
+                    })
+                } else {
+                    res.json({
+                        success: true,
+                        cards: cards.cards
+                    })
+                }
             })
+        } else {
+            res.status(status).send(ret);
         }
     })
 }
