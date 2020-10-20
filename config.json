@@ -1,0 +1,13 @@
+﻿{
+  "secret": "THIS IS USED TO SIGN AND VERIFY JWT TOKENS, REPLACE IT WITH YOUR OWN SECRET, IT CAN BE ANY STRING",
+  "db": {
+    "connectionString": "mongodb+srv://pedroatem:cSPxf6CMPMbY7ot3@mygocluster.sxkur.mongodb.net/mygo?retryWrites=true&w=majority"
+  },
+  "googleApp": {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 465,
+    "smtp_username": "contato.mygo@gmail.com",
+    "smtp_password": "Mygo73428576"
+  },
+  "password_change_url": "http://localhost:4200/change-password"
+}
