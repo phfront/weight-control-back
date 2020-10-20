@@ -8,6 +8,7 @@ const ForgotRedirect = require('../model/forgotRedirect');
 const md5 = require('md5');
 const mailer = require('../service/mailer');
 const config = require('../config.json');
+const jwt = require('jsonwebtoken');
 
 // routes
 router.post('/register', register);
@@ -15,7 +16,8 @@ router.post('/authenticate', authenticate);
 router.get('/', getAll);
 router.get('/:userId/deck', getDecks);
 router.post('/forgotpassword', forgotPassword);
-router.post('/changePassword', changePassword);
+router.post('/changepassword', changePassword);
+router.get('/verifyToken', verifyToken);
 
 module.exports = router;
 
@@ -27,6 +29,26 @@ function authenticate(req, res, next) {
             res.status(500).json(result);
         }
     });
+}
+
+function verifyToken(req, res) {
+    const { authorization } = req.headers;
+    if (authorization) {
+        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+            if (err) {
+                res.status(500).json({
+                    success: false,
+                    errors: ['Token inválido']
+                })
+            }
+            res.json({ success: true })
+        })
+    } else {
+        res.status(500).json({
+            success: false,
+            errors: ['Nenhum token presente no header']
+        })
+    }
 }
 
 function getAll(req, res, next) {
@@ -70,14 +92,14 @@ function register(req, res, next) {
                 res.status(500).json(err);
             } else {
                 if (users.find(user => user.email === email)) {
-                    res.status(500).json(['Já existe um usuário com esse email']);
+                    res.status(500).json({ success: false, errors: ['Já existe um usuário com esse email'] });
                 } else if (users.find(user => user.username === username)) {
-                    res.status(500).json(['Já existe um usuário com esse username']);
+                    res.status(500).json({ success: false, errors: ['Já existe um usuário com esse username'] });
                 } else {
                     const user = new User({ name, email, username, password: md5(password) });
                     user.save((err2, person) => {
                         if (err2) {
-                            res.status(500).send({ message: 'Erro ao registrar o usuário' });
+                            res.status(500).send({ success: false, errors: ['Erro ao registrar o usuário'] });
                         } else {
                             const mycards = new MyCards({ userId: person._id });
                             mycards.save();
@@ -147,6 +169,10 @@ function changePassword(req, res) {
     if (!hash) errors.push('Hash é obrigatório');
     if (!password) errors.push('Senha é obrigatória');
     if (!confirmPassword) errors.push('Confirmar senha é obrigatória');
+    if (password && confirmPassword && password !== confirmPassword) {
+        errors.push('As senhas são diferentes');
+    }
+
     if (errors.length) {
         res.status(500).json({
             success: false,

@@ -28,7 +28,7 @@ function authenticate({ username, password }, cb) {
                 })
             } else {
                 const token = jwt.sign({ sub: user._id }, config.secret, { expiresIn: '7d' });
-                cb({ token })
+                cb({ success: true, token })
             }
         });
     }

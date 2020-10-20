@@ -9,5 +9,5 @@
     "smtp_username": "contato.mygo@gmail.com",
     "smtp_password": "Mygo73428576"
   },
-  "password_change_url": "http://localhost:4200/change-password"
+  "password_change_url": "http://localhost:4200/user/change-password"
 }
