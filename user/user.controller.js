@@ -21,6 +21,7 @@ router.post('/forgotpassword', forgotPassword);
 router.post('/changepassword', changePassword);
 router.get('/verifyToken', verifyToken);
 router.get('/info', userInfo);
+router.put('/theme', setTheme);
 
 module.exports = router;
 
@@ -185,7 +186,7 @@ function register(req, res, next) {
                 } else if (users.find(user => user.username === username)) {
                     res.status(500).json({ success: false, errors: ['Já existe um usuário com esse username'] });
                 } else {
-                    const user = new User({ name, email, username, password: md5(password) });
+                    const user = new User({ name, email, username, password: md5(password), theme: 'yugi' });
                     user.save((err2, person) => {
                         if (err2) {
                             res.status(500).send({ success: false, errors: ['Erro ao registrar o usuário'] });
@@ -269,10 +270,10 @@ function changePassword(req, res) {
         });
     } else {
         ForgotRedirect.findOne({ hash }, (err, resultForgot) => {
-            if (err) {
+            if (err || !resultForgot) {
                 res.status(500).json({
                     success: false,
-                    errors: ['Erro ao buscar hash']
+                    errors: ['Link inválido']
                 });
             } else {
                 if (new Date().getTime() - resultForgot.datetime.getTime() > 120000) {
@@ -297,4 +298,26 @@ function changePassword(req, res) {
             }
         })
     }
+}
+
+function setTheme(req, res) {
+    const { theme } = req.body;
+    userService.getUserIdFromToken(req.headers, (status, ret) => {
+        if (status === 200) {
+            User.findByIdAndUpdate(ret.userId, { theme }, (err, user) => {
+                if (err) {
+                    res.status(500).json({
+                        success: false,
+                        errors: ['Error ao atualizar tema']
+                    })
+                } else {
+                    res.json({
+                        success: true
+                    })
+                }
+            });
+        } else {
+            res.status(status).send(ret);
+        }
+    })
 }

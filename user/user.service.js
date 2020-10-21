@@ -89,6 +89,7 @@ function getUserFromToken(headers, cb) {
                                 name: user.name,
                                 email: user.email,
                                 username: user.username,
+                                theme: user.theme,
                             }
                         });
                     }
