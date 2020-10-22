@@ -275,7 +275,8 @@ function changePassword(req, res) {
                     errors: ['Link inválido']
                 });
             } else {
-                if (new Date().getTime() - resultForgot.datetime.getTime() > 120000) {
+                const diffTime = 1000 * 60 * 30;
+                if (new Date().getTime() - resultForgot.datetime.getTime() > diffTime) {
                     res.status(500).json({
                         success: false,
                         errors: ['Link expirado']
