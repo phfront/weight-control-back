@@ -1,7 +1,5 @@
-﻿const config = require('config.json');
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 const md5 = require('md5');
-const { db } = require('../model/user');
 const User = require('../model/user');
 
 module.exports = {
@@ -29,7 +27,7 @@ function authenticate({ username, password }, cb) {
                     errors: ['Usuário não encontrado, verifique usuário e senha informados']
                 })
             } else {
-                const token = jwt.sign({ userId: user._id }, config.secret, { expiresIn: '7d' });
+                const token = jwt.sign({ userId: user._id }, process.env.SECRET, { expiresIn: '7d' });
                 cb({ success: true, token })
             }
         });
@@ -68,7 +66,7 @@ async function register(user) {
 function getUserFromToken(headers, cb) {
     const { authorization } = headers;
     if (authorization) {
-        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+        jwt.verify(authorization.replace('Bearer ', ''), process.env.SECRET, (err, decoded) => {
             if (err) {
                 cb(500, {
                     success: false,
@@ -107,7 +105,7 @@ function getUserFromToken(headers, cb) {
 function getUserIdFromToken(headers, cb) {
     const { authorization } = headers;
     if (authorization) {
-        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+        jwt.verify(authorization.replace('Bearer ', ''), process.env.SECRET, (err, decoded) => {
             if (err) {
                 cb(500, {
                     success: false,

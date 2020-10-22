@@ -7,7 +7,6 @@ const MyCards = require('../model/mycards');
 const ForgotRedirect = require('../model/forgotRedirect');
 const md5 = require('md5');
 const mailer = require('../service/mailer');
-const config = require('../config.json');
 const jwt = require('jsonwebtoken');
 
 // routes
@@ -38,7 +37,7 @@ function authenticate(req, res, next) {
 function verifyToken(req, res) {
     const { authorization } = req.headers;
     if (authorization) {
-        jwt.verify(authorization.replace('Bearer ', ''), config.secret, (err, decoded) => {
+        jwt.verify(authorization.replace('Bearer ', ''), process.env.SECRET, (err, decoded) => {
             if (err) {
                 res.status(500).json({
                     success: false,
@@ -243,7 +242,7 @@ function forgotPassword(req, res) {
                         mailer(
                             req.body.email,
                             'Mygo recuperação de senha',
-                            `Link para recuperar a senha: ${config.password_change_url}/${responseForgot.hash}`)
+                            `Link para recuperar a senha: ${process.env.PASSWORD_CHANGE_URL}${responseForgot.hash}`)
                         res.json({ success: true })
                     }
                 })

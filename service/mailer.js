@@ -1,10 +1,8 @@
-const config = require('../config.json');
-
 module.exports = function (to, subject, html) {
 
     const send = require('gmail-send')({
-        user: config.googleApp.smtp_username,
-        pass: config.googleApp.smtp_password,
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
         to,
         subject
     });
