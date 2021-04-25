@@ -6,7 +6,9 @@ const UserSchema = new Schema({
     email: String,
     username: String,
     password: String,
-    theme: String,
+    config: {
+    	targetWeight: Number,
+    },
 });
 
-module.exports = mongoose.model('user', UserSchema);
+module.exports = mongoose.model('users', UserSchema);

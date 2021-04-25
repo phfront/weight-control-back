@@ -1,4 +1,3 @@
-
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -20,8 +19,7 @@ module.exports = (err) => {
 
     // api routes
     app.use('/api/user', require('../user/user.controller'));
-    app.use('/api/deck', require('../deck/deck.controller'));
-    app.use('/api/mycards', require('../mycards/mycards.controller'));
+    app.use('/api/weight', require('../weight/weight.controller'));
 
     // global error handler
     app.use(errorHandler);
@@ -29,7 +27,8 @@ module.exports = (err) => {
     // start server
     const port = process.env.PORT || 4000;
     app.listen(port, function () {
-        console.log('running', process.env.PROD === 'false' ? 'dev' : 'prod');
+        const env = process.env.PROD === 'false' ? 'dev' : 'prod';
+        console.log(`running ${env} on port ${port}`);
     });
 
 }

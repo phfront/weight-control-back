@@ -2,30 +2,13 @@
 const router = express.Router();
 const userService = require('./user.service');
 const User = require('../model/user');
-const Deck = require('../model/deck');
-const MyCards = require('../model/mycards');
 const ForgotRedirect = require('../model/forgotRedirect');
 const md5 = require('md5');
 const mailer = require('../service/mailer');
 const jwt = require('jsonwebtoken');
 
-// routes
-router.post('/register', register);
-router.post('/authenticate', authenticate);
-router.get('/', getAll);
-router.get('/deck', getDecks);
-router.get('/mycards', getMyCards);
-router.put('/mycards', updateMyCards);
-router.post('/forgotpassword', forgotPassword);
-router.post('/changepassword', changePassword);
-router.get('/verifyToken', verifyToken);
-router.get('/info', userInfo);
-router.put('/theme', setTheme);
-
-module.exports = router;
-
-function authenticate(req, res, next) {
-    userService.authenticate(req.body, function (result) {
+const authenticate = (req, res, next) => {
+    userService.authenticate(req.body, result => {
         if (result.success) {
             res.json(result);
         } else {
@@ -33,6 +16,27 @@ function authenticate(req, res, next) {
         }
     });
 }
+
+const targetWeight = (req, res) => {
+    userService.targetWeight(req.body, req.headers, result => {
+        if (result.success) {
+            res.json(result);
+        } else {
+            res.status(500).json(result);
+        }
+    });
+}
+
+// routes
+router.post('/register', register);
+router.post('/authenticate', authenticate);
+router.post('/forgotpassword', forgotPassword);
+router.post('/changepassword', changePassword);
+router.get('/verifyToken', verifyToken);
+router.get('/info', userInfo);
+router.put('/targetWeight', targetWeight);
+
+module.exports = router;
 
 function verifyToken(req, res) {
     const { authorization } = req.headers;
@@ -61,108 +65,6 @@ function userInfo(req, res) {
     })
 }
 
-function getAll(req, res, next) {
-    userService.getAll()
-        .then(users => res.json(users))
-        .catch(next);
-}
-
-function getDecks(req, res) {
-    userService.getUserIdFromToken(req.headers, (status, ret) => {
-        if (status === 200) {
-            Deck.find({ userId: ret.userId }, (err, decks) => {
-                if (err) {
-                    res.status(500).json({
-                        success: false,
-                        errors: ['Error ao buscar decks']
-                    })
-                } else {
-                    res.json({
-                        success: true,
-                        decks
-                    })
-                }
-            })
-        } else {
-            res.status(status).send(ret);
-        }
-    })
-}
-
-function updateMyCards(req, res) {
-    const { cards } = req.body;
-    const errors = [];
-    if (!cards) errors.push('Lista de cartas são obrigatórias')
-    if (errors.length) {
-        res.status(500).json({
-            success: false,
-            errors
-        });
-    } else {
-        userService.getUserIdFromToken(req.headers, (status, ret) => {
-            if (status === 200) {
-                MyCards.findOne({ userId: ret.userId }, (err, myCards) => {
-                    if (err) {
-                        res.status(500).json({
-                            success: false,
-                            errors: ['Error ao salvar cartas']
-                        })
-                    } else {
-                        cards.forEach(card => {
-                            const existCard = myCards.cards.find(c => c.id === card.id);
-                            if (existCard) {
-                                if (card.count <= 0) {
-                                    myCards.cards = myCards.cards.filter(c => c.id !== card.id)
-                                } else {
-                                    existCard.count = card.count;
-                                }
-                            } else {
-                                myCards.cards.push(card);
-                            }
-                        })
-                        myCards.update({ cards: myCards.cards }, (err2, update) => {
-                            if (err2) {
-                                res.status(500).json({
-                                    success: false,
-                                    errors: ['Error ao salvar cartas']
-                                })
-                            } else {
-                                res.json({
-                                    success: true
-                                })
-                            }
-                        })
-                    }
-                })
-            } else {
-                res.status(status).send(ret);
-            }
-        })
-    }
-}
-
-function getMyCards(req, res) {
-    userService.getUserIdFromToken(req.headers, (status, ret) => {
-        if (status === 200) {
-            MyCards.findOne({ userId: ret.userId }, (err, cards) => {
-                if (err) {
-                    res.status(500).json({
-                        success: false,
-                        errors: ['Error ao buscar cartas']
-                    })
-                } else {
-                    res.json({
-                        success: true,
-                        cards: cards.cards
-                    })
-                }
-            })
-        } else {
-            res.status(status).send(ret);
-        }
-    })
-}
-
 function register(req, res, next) {
     const errors = [];
     const { name, email, username, password } = req.body;
@@ -185,13 +87,19 @@ function register(req, res, next) {
                 } else if (users.find(user => user.username === username)) {
                     res.status(500).json({ success: false, errors: ['Já existe um usuário com esse username'] });
                 } else {
-                    const user = new User({ name, email, username, password: md5(password), theme: 'yugi' });
+                    const user = new User({
+                        name,
+                        email,
+                        username,
+                        password: md5(password),
+                        config: {
+                            targetWeight: 0
+                        }
+                    });
                     user.save((err2, person) => {
                         if (err2) {
                             res.status(500).send({ success: false, errors: ['Erro ao registrar o usuário'] });
                         } else {
-                            const mycards = new MyCards({ userId: person._id });
-                            mycards.save();
                             res.send({
                                 success: true,
                                 person
@@ -298,26 +206,4 @@ function changePassword(req, res) {
             }
         })
     }
-}
-
-function setTheme(req, res) {
-    const { theme } = req.body;
-    userService.getUserIdFromToken(req.headers, (status, ret) => {
-        if (status === 200) {
-            User.findByIdAndUpdate(ret.userId, { theme }, (err, user) => {
-                if (err) {
-                    res.status(500).json({
-                        success: false,
-                        errors: ['Error ao atualizar tema']
-                    })
-                } else {
-                    res.json({
-                        success: true
-                    })
-                }
-            });
-        } else {
-            res.status(status).send(ret);
-        }
-    })
 }

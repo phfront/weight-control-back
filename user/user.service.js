@@ -2,12 +2,44 @@
 const md5 = require('md5');
 const User = require('../model/user');
 
+const targetWeight = ({ config }, headers, cb) => {
+    const { authorization } = headers;
+    if (authorization) {
+        jwt.verify(authorization.replace('Bearer ', ''), process.env.SECRET, (err, decoded) => {
+            // console.log(config);
+
+            // const user = await User.findOne({ _id: decoded.userId });
+
+            // console.log(user);
+
+            // cb({ success: true });
+
+            User.updateOne(
+                { _id: decoded.userId },
+                { config },
+                (err2, person) => {
+                    if (err2) {
+                        cb({ success: false, errors: ['Erro ao atualizar configuração'] });
+                    } else {
+                        cb({ success: true, person });
+                    }
+                }
+            );
+        })
+    } else {
+        return cb(500, {
+            success: false,
+            errors: ['Header inválido']
+        });
+    }
+}
+
 module.exports = {
     authenticate,
-    getAll,
     register,
     getUserFromToken,
-    getUserIdFromToken
+    getUserIdFromToken,
+    targetWeight
 };
 
 function authenticate({ username, password }, cb) {
@@ -32,10 +64,6 @@ function authenticate({ username, password }, cb) {
             }
         });
     }
-}
-
-async function getAll() {
-    return users.map(u => omitPassword(u));
 }
 
 async function register(user) {
@@ -82,13 +110,7 @@ function getUserFromToken(headers, cb) {
                     } else {
                         cb(200, {
                             success: true,
-                            user: {
-                                _id: user._id,
-                                name: user.name,
-                                email: user.email,
-                                username: user.username,
-                                theme: user.theme,
-                            }
+                            user
                         });
                     }
                 });
